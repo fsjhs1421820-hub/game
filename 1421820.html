@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>《常識以外：元素融合 2048》官方一頁式展示與遊戲平台</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Google Fonts: Orbitron + Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            tech: ['Orbitron', 'sans-serif'],
+            sans: ['Noto Sans TC', 'sans-serif'],
+          },
+          colors: {
+            scifi: {
+              bg: '#060913',
+              panel: 'rgba(13, 22, 41, 0.85)',
+              border: 'rgba(0, 243, 255, 0.25)',
+              cyan: '#00f3ff',
+              purple: '#b026ff',
+              pink: '#ff2a85',
+              green: '#00ffa3',
+              yellow: '#ffea00'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #060913;
+      background-image: 
+        radial-gradient(circle at 50% 10%, rgba(0, 243, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 85% 90%, rgba(176, 38, 255, 0.08) 0%, transparent 60%),
+        linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      user-select: none;
+    }
+
+    .glass-panel {
+      background: rgba(13, 22, 41, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    }
+
+    .neon-text-cyan { text-shadow: 0 0 10px rgba(0, 243, 255, 0.6); }
+    .neon-text-pink { text-shadow: 0 0 10px rgba(255, 42, 133, 0.6); }
+    .neon-text-green { text-shadow: 0 0 10px rgba(0, 255, 163, 0.6); }
+
+    /* Tile Animations */
+    .tile {
+      transition: top 140ms ease-in-out, left 140ms ease-in-out;
+    }
+
+    .tile-new {
+      animation: assemble 180ms ease-out;
+    }
+
+    .tile-merged {
+      animation: pulse 200ms ease-in-out;
+    }
+
+    @keyframes assemble {
+      0% { opacity: 0; transform: scale(0.3); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.12); filter: brightness(1.4); }
+      100% { transform: scale(1); }
+    }
+
+    .toast-enter {
+      animation: toastDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes toastDown {
+      0% { opacity: 0; transform: translate(-50%, -15px); }
+      100% { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #060913; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.3); border-radius: 4px; }
+  </style>
+</head>
+<body class="text-slate-100 font-sans leading-relaxed">
+
+  <!-- Navbar Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-cyan-500/20 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-400 flex items-center justify-center text-scifi-cyan">
+          <i class="fa-solid fa-atom text-lg"></i>
+        </div>
+        <span class="font-tech font-black text-lg text-white tracking-wide neon-text-cyan">
+          FUSION 2048 LAB
+        </span>
+      </div>
+      <div class="flex gap-4 text-xs font-tech">
+        <a href="#journey" class="hover:text-scifi-cyan transition flex items-center gap-1.5"><i class="fa-solid fa-timeline"></i> 開發歷程</a>
+        <a href="#evolution" class="hover:text-scifi-cyan transition flex items-center gap-1.5"><i class="fa-solid fa-dna"></i> 演化圖鑑</a>
+        <a href="#game" class="px-3 py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400 text-scifi-cyan hover:bg-cyan-500/30 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-gamepad"></i> 立即遊玩
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO SECTION -->
+  <header class="pt-28 pb-12 px-4 text-center max-w-4xl mx-auto flex flex-col items-center gap-4">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-400/40 bg-amber-500/10 text-amber-300 text-xs font-medium">
+      <i class="fa-solid fa-graduation-cap"></i> 理科生的最後反抗 ‧ 專案作品
+    </div>
+
+    <h1 class="text-3xl md:text-5xl font-black font-tech text-transparent bg-clip-text bg-gradient-to-r from-scifi-cyan via-white to-scifi-purple tracking-wider neon-text-cyan leading-tight">
+      《常識以外：元素融合 2048》
+    </h1>
+
+    <p class="text-sm md:text-base text-slate-300 max-w-xl">
+      5x5 量子反應矩陣 ‧ 11 階生命演化鏈 ‧ PC 平滑滑動與聲光體驗
+    </p>
+
+    <!-- Student Quote Card -->
+    <div class="w-full max-w-lg glass-panel rounded-2xl p-4 border-l-4 border-l-amber-400 mt-2 text-left relative overflow-hidden">
+      <div class="flex items-start gap-3">
+        <i class="fa-solid fa-quote-left text-amber-400 text-xl mt-1"></i>
+        <div>
+          <p class="text-sm md:text-base text-slate-200">
+            老師說這章節很簡單，只要用「常識」想就知道——
+          </p>
+          <p class="text-right text-base md:text-lg font-bold text-amber-300 mt-1">
+            對不起，我可能沒有這種常識 😭
+          </p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SECTION 1: VISUAL DEVELOPMENT JOURNEY -->
+  <section id="journey" class="py-12 px-4 max-w-5xl mx-auto">
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold font-tech text-scifi-cyan flex items-center justify-center gap-2">
+        <i class="fa-solid fa-route"></i> 開發歷程 (Development Journey)
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">從點子萌芽到遊戲發布的 5 個核心階段</p>
+    </div>
+
+    <!-- Icon Grid Step Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+      <!-- Step 1 -->
+      <div class="glass-panel rounded-2xl p-4 text-center border-cyan-500/30 flex flex-col items-center">
+        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-400 flex items-center justify-center text-scifi-cyan text-xl mb-2">
+          <i class="fa-solid fa-lightbulb"></i>
+        </div>
+        <div class="text-xs font-tech text-cyan-400">STEP 01</div>
+        <div class="font-bold text-sm text-white mt-0.5">5x5 盤面擴張</div>
+        <div class="text-[11px] text-slate-400 mt-1">打破經典 4x4 限制</div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="glass-panel rounded-2xl p-4 text-center border-purple-500/30 flex flex-col items-center">
+        <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-400 flex items-center justify-center text-scifi-purple text-xl mb-2">
+          <i class="fa-solid fa-vial-circle-check"></i>
+        </div>
+        <div class="text-xs font-tech text-purple-400">STEP 02</div>
+        <div class="font-bold text-sm text-white mt-0.5">11 階化學鏈</div>
+        <div class="text-[11px] text-slate-400 mt-1">從 H 原子到生命體</div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="glass-panel rounded-2xl p-4 text-center border-pink-500/30 flex flex-col items-center">
+        <div class="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-400 flex items-center justify-center text-scifi-pink text-xl mb-2">
+          <i class="fa-solid fa-microchip"></i>
+        </div>
+        <div class="text-xs font-tech text-pink-400">STEP 03</div>
+        <div class="font-bold text-sm text-white mt-0.5">科幻 HUD 介面</div>
+        <div class="text-[11px] text-slate-400 mt-1">暗色玻璃與霓虹質感</div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="glass-panel rounded-2xl p-4 text-center border-green-500/30 flex flex-col items-center">
+        <div class="w-12 h-12 rounded-xl bg-green-500/10 border border-green-400 flex items-center justify-center text-scifi-green text-xl mb-2">
+          <i class="fa-solid fa-keyboard"></i>
+        </div>
+        <div class="text-xs font-tech text-scifi-green">STEP 04</div>
+        <div class="font-bold text-sm text-white mt-0.5">PC 滑動操控</div>
+        <div class="text-[11px] text-slate-400 mt-1">方向鍵/WASD 與音效</div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="glass-panel rounded-2xl p-4 text-center border-amber-500/30 flex flex-col items-center">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-400 flex items-center justify-center text-amber-300 text-xl mb-2">
+          <i class="fa-solid fa-image"></i>
+        </div>
+        <div class="text-xs font-tech text-amber-400">STEP 05</div>
+        <div class="font-bold text-sm text-white mt-0.5">專屬宣傳封面</div>
+        <div class="text-[11px] text-slate-400 mt-1">展現專案故事梗</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: 11-STAGE EVOLUTION MATRIX -->
+  <section id="evolution" class="py-12 px-4 max-w-5xl mx-auto">
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold font-tech text-scifi-purple flex items-center justify-center gap-2">
+        <i class="fa-solid fa-dna"></i> 11 階化學演化矩陣
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">兩個相同元素碰撞即可合成下一階化學物</p>
+    </div>
+
+    <!-- Visual 11 Stage Flow Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+      <!-- LV 1 -->
+      <div class="glass-panel p-3 rounded-xl border-cyan-400/50 text-center">
+        <div class="text-[10px] font-tech text-cyan-400">LV 1 (2)</div>
+        <div class="text-lg font-black text-cyan-200">H</div>
+        <div class="text-[11px] text-slate-300">氫原子</div>
+      </div>
+      <!-- LV 2 -->
+      <div class="glass-panel p-3 rounded-xl border-sky-400/50 text-center">
+        <div class="text-[10px] font-tech text-sky-400">LV 2 (4)</div>
+        <div class="text-lg font-black text-sky-200">H₂</div>
+        <div class="text-[11px] text-slate-300">氫氣</div>
+      </div>
+      <!-- LV 3 -->
+      <div class="glass-panel p-3 rounded-xl border-teal-400/50 text-center">
+        <div class="text-[10px] font-tech text-teal-400">LV 3 (8)</div>
+        <div class="text-lg font-black text-teal-200">H₂O</div>
+        <div class="text-[11px] text-slate-300">水</div>
+      </div>
+      <!-- LV 4 -->
+      <div class="glass-panel p-3 rounded-xl border-emerald-400/50 text-center">
+        <div class="text-[10px] font-tech text-emerald-400">LV 4 (16)</div>
+        <div class="text-lg font-black text-emerald-200">NaOH</div>
+        <div class="text-[11px] text-slate-300">氫氧化鈉</div>
+      </div>
+      <!-- LV 5 -->
+      <div class="glass-panel p-3 rounded-xl border-amber-400/50 text-center">
+        <div class="text-[10px] font-tech text-amber-400">LV 5 (32)</div>
+        <div class="text-lg font-black text-amber-200">NaCl</div>
+        <div class="text-[11px] text-slate-300">食鹽</div>
+      </div>
+      <!-- LV 6 -->
+      <div class="glass-panel p-3 rounded-xl border-orange-400/50 text-center">
+        <div class="text-[10px] font-tech text-orange-400">LV 6 (64)</div>
+        <div class="text-lg font-black text-orange-200">NaHCO₃</div>
+        <div class="text-[11px] text-slate-300">小蘇打</div>
+      </div>
+      <!-- LV 7 -->
+      <div class="glass-panel p-3 rounded-xl border-rose-400/50 text-center">
+        <div class="text-[10px] font-tech text-rose-400">LV 7 (128)</div>
+        <div class="text-lg font-black text-rose-200">C₆H₁₂O₆</div>
+        <div class="text-[11px] text-slate-300">葡萄糖</div>
+      </div>
+      <!-- LV 8 -->
+      <div class="glass-panel p-3 rounded-xl border-fuchsia-400/50 text-center">
+        <div class="text-[10px] font-tech text-fuchsia-400">LV 8 (256)</div>
+        <div class="text-lg font-black text-fuchsia-200">Starch</div>
+        <div class="text-[11px] text-slate-300">澱粉</div>
+      </div>
+      <!-- LV 9 -->
+      <div class="glass-panel p-3 rounded-xl border-purple-400/50 text-center">
+        <div class="text-[10px] font-tech text-purple-400">LV 9 (512)</div>
+        <div class="text-lg font-black text-purple-200">Cell</div>
+        <div class="text-[11px] text-slate-300">單細胞</div>
+      </div>
+      <!-- LV 10 -->
+      <div class="glass-panel p-3 rounded-xl border-indigo-400/50 text-center">
+        <div class="text-[10px] font-tech text-indigo-400">LV 10 (1024)</div>
+        <div class="text-lg font-black text-indigo-200">DNA</div>
+        <div class="text-[11px] text-slate-300">基因鏈</div>
+      </div>
+      <!-- LV 11 (Goal) -->
+      <div class="col-span-2 glass-panel p-3 rounded-xl border-scifi-green bg-green-950/20 text-center">
+        <div class="text-[10px] font-tech text-scifi-green">LV 11 (2048) 終極目標</div>
+        <div class="text-lg font-black text-scifi-green neon-text-green">Human / Life</div>
+        <div class="text-[11px] text-slate-200">終極生命體</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: PLAYABLE EMBEDDED GAME PLATFORM -->
+  <section id="game" class="py-12 px-4 max-w-2xl mx-auto">
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-400/40 bg-cyan-500/10 text-cyan-300 text-xs font-tech mb-2">
+        <i class="fa-solid fa-gamepad"></i> LIVE GAME PLATFORM
+      </div>
+      <h2 class="text-2xl font-bold font-tech text-white neon-text-cyan">
+        實機實驗室盤面
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">使用方向鍵 <span class="text-cyan-300">[↑] [↓] [←] [→]</span> 或 <span class="text-cyan-300">[W][A][S][D]</span> 操控方塊移動</p>
+    </div>
+
+    <!-- GAME CONTAINER -->
+    <div class="glass-panel rounded-3xl p-4 md:p-6 border-cyan-500/40 shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col gap-3">
+      
+      <!-- Top Control Bar -->
+      <div class="flex justify-between items-center">
+        <div class="flex gap-2">
+          <div class="glass-panel px-3 py-1.5 rounded-xl border-cyan-500/30 text-center">
+            <div class="text-[9px] font-tech text-cyan-400">得分</div>
+            <div id="score-display" class="font-tech font-bold text-lg text-white">0</div>
+          </div>
+          <div class="glass-panel px-3 py-1.5 rounded-xl border-purple-500/30 text-center">
+            <div class="text-[9px] font-tech text-purple-400">最高分</div>
+            <div id="high-score-display" class="font-tech font-bold text-lg text-white">0</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-shuffle" onclick="useReshuffle()" class="glass-panel px-3 py-1.5 rounded-xl border-amber-400/40 hover:border-amber-300 transition text-amber-300 text-xs font-tech flex items-center gap-1.5 disabled:opacity-40">
+            <i class="fa-solid fa-shuffle"></i> 洗牌 (<span id="shuffle-count">2</span>)
+          </button>
+          <button onclick="toggleSound()" class="w-9 h-9 glass-panel rounded-xl flex items-center justify-center text-cyan-300">
+            <i id="icon-sound" class="fa-solid fa-volume-high"></i>
+          </button>
+          <button onclick="resetGame()" class="w-9 h-9 glass-panel rounded-xl flex items-center justify-center text-pink-300">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Reaction Toast -->
+      <div id="reaction-toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-40 hidden pointer-events-none">
+        <div class="glass-panel px-5 py-2 rounded-full border-cyan-300 shadow-[0_0_25px_rgba(0,243,255,0.4)] flex items-center gap-3 bg-slate-950/90">
+          <i class="fa-solid fa-flask text-scifi-cyan text-sm"></i>
+          <span id="reaction-formula" class="font-tech font-bold text-sm text-white">H + H → H₂</span>
+        </div>
+      </div>
+
+      <!-- Game Arena (5x5 Grid) -->
+      <div class="relative w-full aspect-square glass-panel rounded-2xl p-2.5 border-cyan-500/30 overflow-hidden">
+        <div id="grid-background" class="grid grid-cols-5 grid-rows-5 gap-1.5 w-full h-full">
+          <!-- 25 Cells -->
+        </div>
+        <div id="tile-container" class="absolute inset-0 p-2.5">
+          <!-- Dynamic Tiles -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="py-8 border-t border-slate-800 text-center text-xs text-slate-500 font-tech">
+    <p>© 2026 LABORATORY SIMULATION PROJECT ｜ 5x5 QUANTUM FUSION</p>
+  </footer>
+
+  <!-- MODAL: Game Over -->
+  <div id="modal-gameover" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="glass-panel w-full max-w-sm rounded-2xl border-pink-500/60 p-5 flex flex-col items-center text-center gap-3">
+      <i class="fa-solid fa-skull-crossbones text-scifi-pink text-3xl"></i>
+      <h3 class="font-tech font-bold text-xl text-scifi-pink">盤面空間已耗盡</h3>
+      <p class="text-xs text-amber-300">「對不起，我可能沒有這種常識…」</p>
+      <button onclick="closeModal('modal-gameover'); resetGame();" class="w-full py-2 rounded-xl border border-pink-400 bg-pink-950/60 text-pink-200 font-tech text-xs">
+        重新開始實驗
+      </button>
+    </div>
+  </div>
+
+  <!-- JavaScript Core -->
+  <script>
+    const LEVELS = [
+      { level: 1, val: 2, htmlFormula: 'H', name: '氫原子', eq: '基礎刷出元素', bg: 'from-cyan-950/90 to-slate-900/90', border: 'border-cyan-400/80', text: 'text-cyan-200' },
+      { level: 2, val: 4, htmlFormula: 'H<sub>2</sub>', name: '氫氣', eq: 'H + H → H₂', bg: 'from-sky-950/90 to-slate-900/90', border: 'border-sky-400/80', text: 'text-sky-200' },
+      { level: 3, val: 8, htmlFormula: 'H<sub>2</sub>O', name: '水', eq: 'H₂ + O → H₂O', bg: 'from-teal-950/90 to-slate-900/90', border: 'border-teal-400/80', text: 'text-teal-200' },
+      { level: 4, val: 16, htmlFormula: 'NaOH', name: '氫氧化鈉', eq: 'H₂O + Na → NaOH', bg: 'from-emerald-950/90 to-slate-900/90', border: 'border-emerald-400/80', text: 'text-emerald-200' },
+      { level: 5, val: 32, htmlFormula: 'NaCl', name: '食鹽', eq: 'NaOH + HCl → NaCl + H₂O', bg: 'from-amber-950/90 to-slate-900/90', border: 'border-amber-400/80', text: 'text-amber-200' },
+      { level: 6, val: 64, htmlFormula: 'NaHCO<sub>3</sub>', name: '小蘇打', eq: 'NaCl + CO₂ → NaHCO₃', bg: 'from-orange-950/90 to-slate-900/90', border: 'border-orange-400/80', text: 'text-orange-200' },
+      { level: 7, val: 128, htmlFormula: 'C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>', name: '葡萄糖', eq: 'NaHCO₃ + ... → C₆H₁₂O₆', bg: 'from-rose-950/90 to-slate-900/90', border: 'border-rose-400/80', text: 'text-rose-200' },
+      { level: 8, val: 256, htmlFormula: 'Starch', name: '澱粉', eq: '多醣聚合 → Starch', bg: 'from-fuchsia-950/90 to-slate-900/90', border: 'border-fuchsia-400/80', text: 'text-fuchsia-200' },
+      { level: 9, val: 512, htmlFormula: 'Cell', name: '單細胞', eq: '有機物演化 → Cell', bg: 'from-purple-950/90 to-slate-900/90', border: 'border-purple-400/80', text: 'text-purple-200' },
+      { level: 10, val: 1024, htmlFormula: 'DNA', name: '基因鏈', eq: '複雜生命分子 → DNA', bg: 'from-indigo-950/90 to-slate-900/90', border: 'border-indigo-400/90', text: 'text-indigo-200' },
+      { level: 11, val: 2048, htmlFormula: 'Human / Life', name: '終極生命體', eq: '終極合成 → Human / Life', bg: 'from-emerald-900/90 to-blue-900/90', border: 'border-scifi-green', text: 'text-scifi-green' }
+    ];
+
+    const GRID_SIZE = 5;
+    let grid = [], tiles = [], score = 0, reshufflesLeft = 2, isMoving = false, soundMuted = false, tileIdCounter = 1;
+    let highScore = parseInt(localStorage.getItem('tech_2048_page_score') || '0', 10);
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSound(type) {
+      if (soundMuted) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      if (type === 'move') {
+        osc.frequency.setValueAtTime(350, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      } else if (type === 'merge') {
+        osc.frequency.setValueAtTime(450, now);
+        osc.frequency.exponentialRampToValueAtTime(750, now + 0.1);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      }
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.1);
+    }
+
+    function toggleSound() {
+      soundMuted = !soundMuted;
+      document.getElementById('icon-sound').className = soundMuted ? 'fa-solid fa-volume-xmark text-slate-500' : 'fa-solid fa-volume-high text-cyan-300';
+    }
+
+    class Tile {
+      constructor(r, c, level = 1) {
+        this.id = tileIdCounter++;
+        this.r = r; this.c = c; this.level = level;
+        this.element = null; this.isMerged = false;
+      }
+    }
+
+    function initGame() {
+      const bg = document.getElementById('grid-background');
+      bg.innerHTML = '';
+      for (let i = 0; i < 25; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'rounded-xl w-full h-full bg-slate-900/80 border border-cyan-500/10';
+        bg.appendChild(cell);
+      }
+      resetGame();
+    }
+
+    function resetGame() {
+      grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+      tiles.forEach(t => t.element && t.element.remove());
+      tiles = []; score = 0; reshufflesLeft = 2; isMoving = false;
+      updateScore(0); updateShuffleUI();
+      spawnRandomTile(); spawnRandomTile();
+      renderTiles();
+    }
+
+    function updateScore(add) {
+      score += add;
+      document.getElementById('score-display').innerText = score;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('tech_2048_page_score', highScore.toString());
+      }
+      document.getElementById('high-score-display').innerText = highScore;
+    }
+
+    function updateShuffleUI() {
+      document.getElementById('shuffle-count').innerText = reshufflesLeft;
+      document.getElementById('btn-shuffle').disabled = (reshufflesLeft <= 0);
+    }
+
+    function spawnRandomTile() {
+      const empty = [];
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (!grid[r][c]) empty.push({ r, c });
+        }
+      }
+      if (empty.length === 0) return;
+      const spot = empty[Math.floor(Math.random() * empty.length)];
+      const tile = new Tile(spot.r, spot.c, Math.random() < 0.88 ? 1 : 2);
+      tile.isNew = true;
+      grid[spot.r][spot.c] = tile;
+      tiles.push(tile);
+    }
+
+    function renderTiles() {
+      const container = document.getElementById('tile-container');
+      const gap = 1.6;
+      const size = (100 - gap * 4) / 5;
+
+      tiles.forEach(tile => {
+        let el = tile.element;
+        const data = LEVELS[tile.level - 1];
+
+        if (!el) {
+          el = document.createElement('div');
+          el.className = `tile absolute flex flex-col items-center justify-center rounded-xl border bg-gradient-to-br ${data.bg} ${data.border} ${data.text} select-none font-sans`;
+          if (tile.isNew) { el.classList.add('tile-new'); tile.isNew = false; }
+          container.appendChild(el);
+          tile.element = el;
+        }
+
+        el.innerHTML = `
+          <div class="text-xs font-black">${data.htmlFormula}</div>
+          <div class="text-[9px] opacity-80">${data.name}</div>
+        `;
+
+        if (tile.isMerged) {
+          el.classList.add('tile-merged');
+          tile.isMerged = false;
+        }
+
+        el.style.width = `${size}%`;
+        el.style.height = `${size}%`;
+        el.style.top = `${tile.r * (size + gap)}%`;
+        el.style.left = `${tile.c * (size + gap)}%`;
+      });
+    }
+
+    function handleMove(direction) {
+      if (isMoving) return;
+      initAudio();
+
+      let moved = false, scoreGained = 0, eq = null;
+      const vec = { 'UP': {r:-1,c:0}, 'DOWN': {r:1,c:0}, 'LEFT': {r:0,c:-1}, 'RIGHT': {r:0,c:1} }[direction];
+      
+      const traversals = { r: [0,1,2,3,4], c: [0,1,2,3,4] };
+      if (vec.r === 1) traversals.r.reverse();
+      if (vec.c === 1) traversals.c.reverse();
+
+      traversals.r.forEach(r => {
+        traversals.c.forEach(c => {
+          const tile = grid[r][c];
+          if (!tile) return;
+
+          let target = { r, c };
+          while (true) {
+            const next = { r: target.r + vec.r, c: target.c + vec.c };
+            if (next.r < 0 || next.r >= 5 || next.c < 0 || next.c >= 5) break;
+            if (grid[next.r][next.c]) {
+              if (grid[next.r][next.c].level === tile.level && !grid[next.r][next.c].isMerged) {
+                target = next;
+              }
+              break;
+            }
+            target = next;
+          }
+
+          if (target.r !== r || target.c !== c) {
+            const dest = grid[target.r][target.c];
+            if (dest && dest.level === tile.level) {
+              const newLvl = tile.level + 1;
+              const merged = new Tile(target.r, target.c, newLvl);
+              merged.isMerged = true;
+              grid[r][c] = null;
+              grid[target.r][target.c] = merged;
+
+              tiles = tiles.filter(t => t !== tile && t !== dest);
+              if (tile.element) tile.element.remove();
+              if (dest.element) dest.element.remove();
+              tiles.push(merged);
+
+              scoreGained += LEVELS[newLvl - 1].val;
+              eq = LEVELS[newLvl - 1].eq;
+              moved = true;
+            } else if (!dest) {
+              grid[r][c] = null;
+              grid[target.r][target.c] = tile;
+              tile.r = target.r; tile.c = target.c;
+              moved = true;
+            }
+          }
+        });
+      });
+
+      if (moved) {
+        isMoving = true;
+        playSound(eq ? 'merge' : 'move');
+        if (scoreGained > 0) updateScore(scoreGained);
+        if (eq) showReactionToast(eq);
+
+        renderTiles();
+        setTimeout(() => {
+          spawnRandomTile();
+          renderTiles();
+          isMoving = false;
+          if (checkGameOver()) openModal('modal-gameover');
+        }, 140);
+      }
+    }
+
+    function checkGameOver() {
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (!grid[r][c]) return false;
+          if (c < 4 && grid[r][c+1] && grid[r][c].level === grid[r][c+1].level) return false;
+          if (r < 4 && grid[r+1][c] && grid[r][c].level === grid[r+1][c].level) return false;
+        }
+      }
+      return true;
+    }
+
+    function useReshuffle() {
+      if (reshufflesLeft <= 0 || isMoving) return;
+      reshufflesLeft--;
+      updateShuffleUI();
+
+      const spots = [];
+      for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) spots.push({ r, c });
+      spots.sort(() => Math.random() - 0.5);
+
+      grid = Array(5).fill(null).map(() => Array(5).fill(null));
+      tiles.forEach((t, idx) => {
+        t.r = spots[idx].r; t.c = spots[idx].c;
+        grid[t.r][t.c] = t;
+      });
+
+      renderTiles();
+      showReactionToast('陣列重組：洗牌完畢');
+    }
+
+    let toastTimer = null;
+    function showReactionToast(text) {
+      const toast = document.getElementById('reaction-toast');
+      document.getElementById('reaction-formula').innerText = text;
+      toast.classList.remove('hidden');
+      toast.classList.add('toast-enter');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.add('hidden'), 1500);
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    window.addEventListener('keydown', e => {
+      const keys = { 'ArrowUp':'UP', 'w':'UP', 'W':'UP', 'ArrowDown':'DOWN', 's':'DOWN', 'S':'DOWN', 'ArrowLeft':'LEFT', 'a':'LEFT', 'A':'LEFT', 'ArrowRight':'RIGHT', 'd':'RIGHT', 'D':'RIGHT' };
+      if (keys[e.key]) { e.preventDefault(); handleMove(keys[e.key]); }
+    });
+
+    window.onload = initGame;
+  </script>
+</body>
+</html>
